@@ -1,0 +1,379 @@
+# Instalación
+
+## Requisitos previos
+
+### Composer
+
+Para instalar Symfony necesitamos tener instalado Composer (https://getcomposer.org/download/).
+
+### Symfony CLI
+
+Es interesante -pero no obligatorio- tener instalado Symfony-CLI, un binario que provee herramientas para ejecutar y trabajar con Symfony: https://symfony.com/download. Por ejemplo:
+
+```
+symfony check:requirements
+```
+
+Para comprobar si podemos instalar y ejecutar Symfony en nuestro ordenador.
+
+## Instalación
+
+### Con Symfony CLI
+
+Con este comando instalamos una versión de Symfony completamente vitaminada, con muchos paquetes y utilidades (plantillas, capas de seguridad, conexión con base de datos...) para una web completa:
+
+```
+symfony new nombre_de_proyecto --full
+```
+
+Podemos hacer una instalación mínima y después ir instalando los paquetes que necesitemos:
+
+```
+symfony new nombre_de_proyecto
+```
+
+### Con Composer
+
+Podemos crear un proyecto Symfony desde cero con Composer. Para un proyecto web:
+
+```
+composer create-project symfony/website-skeleton nombre_de_proyecto
+```
+
+Para un microservicio, aplicación de consola o API podemos hacer una instalación más reducida:
+
+```
+composer create-project symfony/skeleton nombre_de_proyecto
+```
+
+### Dependencias
+
+- Anotaciones: imprescindible para trabajar con anotaciones (por ejemplo para las rutas) en Symfony
+- Monolog: es un potente servicio para log. Se puede instalar mediante Flex (receta logger)
+- Doctrine: ORM
+
+```
+# Anotaciones
+composer require annotations
+
+# Monolog
+composer require logger # Receta Flex
+
+# Doctrine
+composer require symfony/orm-pack # Receta Flex
+composer require --dev symfony/maker-bundle
+```
+
+## Estructura
+
+### Archivos
+
+`.env`
+
+Archivo donde almacenaremos las variables de entorno que nos permiten ejecutar nuestra aplicación.
+
+`.gitignore`: Symfony nos crea el archivo .gitignore para que nuestro Git controle únicamente los archivos y carpetas necesarios.
+
+`composer.json` / `composer.lock`: Controla las dependencias de nuestro proyecto.
+
+`symfony.lock`: Es una versión extendida de `composer.lock`.
+
+### Carpetas
+
+`bin`: Podemos encontrar aquí un ejecutable `console` que nos permite ejecutar comandos de consola desde la raíz de nuestro proyecto, tanto los que nos provee Symfony como los que creemos nosotros.
+
+`config`: configuración de nuestro proyecto. Por defecto encontraremos las rutas y la configuración de los paquetes que tenemos instalados.
+
+`public`: el document root del servidor web que utilicemos deberá apuntar a esta carpeta, no a la raíz del proyecto Symfony.
+
+`src`: el código fuente de nuestra aplicación. Por defecto encontramos una carpeta `Controller` y un archivo `kernel.php` que instancia la configuración básica de nuestro proyecto.
+
+`var`: caché y archivos log.
+
+`vendor`: dependencias de nuestro proyecto.
+
+## Configuración
+
+### Archivos de entorno
+
+Por defecto Symfony gestiona las variables de entorno en el archivo `.env` de la raíz de nuestro proyecto. Por ejemplo, cuando instalamos Doctrine para gestionar bases de datos en este archivo crea una variable de entorno con el DSN para la conexión. Dado que este archivo se gestionará con nuestro sistema de control de versiones, no sería correcto que quedara almacenada una contraseña o datos sensibles en este archivo, sino que las tenemos que gestionar en un archivo `.env.local`, que está configurado en `.gitignore` para no ser atendido por Git.
+
+```
+# .env.local
+DATABASE_URL="mysql://root:toor@127.0.0.1:3306/symfonyDB?serverVersion=8.0"
+```
+
+
+
+## Ejecución
+
+Desde la versión 4 de Symfony es posible ejecutar nuestra aplicación sin la necesidad de utilizar servidores o herramientas locales como MAMP, WAMP o Docker con este comando desde la raíz de nuestro proyecto:
+
+```
+symfony server:start
+```
+
+Esto nos levanta un servidor local y nos indicará la URL, http://127.0.0.1, el puerto puede cambiar. Si accedemos veremos la página por defecto de Symfony.
+
+# Rutas
+
+## Anotación
+
+### Instalación
+
+Hay diferentes formas de gestionar las rutas en Symfony. Las más frecuentes son mediante archivos yaml y anotaciones.
+
+La forma que recomienda Symfony es usar anotaciones, ya que la información de la ruta queda asociada directamente en el controlador. 
+
+Para trabajar con anotaciones debemos instalar el paquete que nos permite trabajar con las anotaciones:
+
+```
+composer require annotations
+```
+
+Mediante Symfony Flex nos traerá una serie de bundles necesarios para trabajar con anotaciones, aplicando una "receta", que no es más que, además de instalar los bundles, deja una serie de configuraciones creadas.
+
+Dentro de la carpeta `config/routes`, ha creado un archivo `annotations.yaml` donde se indican los archivos que van a tener anotaciones, de forma que Symfony pueda tenerlos en cuenta.
+
+### Configuración
+
+Sobre el método destino de la ruta, añadimos un bloque de comentario con la información de la ruta:
+
+```
+/**
+* @Route("/api/test", methods={"GET", "POST"}, name="api_test")
+*/
+```
+
+## YAML
+
+Las rutas se configuran en el archivo `config/routes.yaml`:
+
+```
+testAPI2:
+  path: /api/test2
+  methods: 'GET'
+  controller: App\Controller\ApiController::testAPI2
+```
+
+Si tenemos muchas rutas y necesitamos organizarlas, es posible crear una estructura de carpetas dentro de `config/routes` con diferentes archivos .yaml con las diferentes rutas y dejaremos en el archivo `config/routes.yaml` la configuración que indica qué archivos de rutas hay que cargar:
+
+```
+# config/routes.yaml
+app:
+  resource: 'routes/misRutas/*.yaml'
+```
+
+# Controladores
+
+Un controlador es una clase PHP que contiene acciones y estas acciones son las que están asociadas a las rutas. Las acciones tienen que devolver SIEMPRE una respuesta.
+
+## Configuración
+
+### Namespace
+
+Los controladores se crean dentro de la carpeta src/Controllers y llevarán siempre el namespace App\Controller.
+
+### AbastractController
+
+No es obligatorio, pero si extendemos nuestro controlador de la clase AbastractController, en ella Symfony nos provee de una serie de utilidades que nos facilitan el trabajo. No es imprescindible.
+
+### Response
+
+Dado que los controladores siempre tienen que devolver una respuesta, es necesario:
+
+- Importar la clase Response:
+
+    ```
+    use Symfony\Component\HttpFoundation\Response;
+    ```
+
+- Devolver una instancia del objeto Response:
+
+    ```
+    $response = new Response();
+    $response->setContent('<p>Hola</p>');
+    return $response;
+    ```
+
+### JsonResponse
+
+Si lo que queremos es devolver un JSON, importaremos:
+
+```
+use Symfony\Component\HttpFoundation\JsonResponse;
+```
+
+Y devolveremos un objeto JsonResponse con un array como parámetro, lo que nos ofrecerá un JSON:
+
+```
+$response = new JsonResponse();
+$response->setData([
+    "result" => [
+        "success" => true,
+        "message" => "Respuesta correcta",
+    ],
+    "data" => [
+        "nombre" => "Javier",
+        "apellidos" => "Rodríguez Falces",
+    ],
+]);
+return $response;
+```
+
+## Acciones
+
+Dentro de la clase podemos definir métodos públicos que como acciones, es decir, que tendrán una ruta asociada. Para gestionar las rutas como anotaciones debemos importar:
+
+```
+use Symfony\Component\Routing\Annotation\Route;
+```
+
+Y configuramos la ruta como una anotación sobre el método de nuestra acción:
+
+```
+/**
+* @Route("/api/test", name="api_test")
+*
+* @return void
+*/
+public function testAPI()
+{
+
+}
+```
+
+## Request
+
+En los métodos de acción, Symfony nos permite inyectar el objeto Request, donde podemos encontrar toda la información de la petición:
+
+```
+use Symfony\Component\HttpFoundation\Request;
+...
+public function testAPI4(Request $request)
+{
+	$valor = $request->get('parametro');
+    $response = new JsonResponse();
+    $response->setData([
+    	"Valor de parametro" => $valor,
+    ]);
+    return $response;
+}
+```
+
+# Servicios
+
+Los servicios son clases, cada una con su utilidad. Symfony carga todas estas clases en una contenedor -container- de modo que cuando necesitamos alguno de ellos no tenemos que hacer más que añadirlo como parámetro en una función. Esto se llama Inyección de Dependencias, es la forma que tenemos de separar la funcionalidad de nuestro código para evitar controladores enormes y poder reutilizar código. Con el comando:
+
+```
+bin/console debug:container
+```
+
+Podemos ver todos los servicios que Symfony tiene registrados en su contenedor.
+
+## Configuración
+
+En el archivo `config/services.yaml` se define la configuración de los servicios de nuestra aplicación. Tendremos los configurados por Symfony y podremos añadir los nuestros:
+
+- autowire: autocargar servicios mediante inyección de dependecias.
+- autoconfigure: Dejar que Symfony configure ciertos servicios (Eventos, Comandos, etc.)
+- resource: carpeta y subcarpetas que Symfony auditará para buscar servicios
+- exclude: carpeta y subcarpetas que Symfony excluirá para buscar servicios
+
+# Doctrine
+
+## Descripción
+
+Symfony usa Doctrine como DBAL y ORM:
+
+- Nos abstrae la conexión con la base de datos
+- Gestión ORM: mapear objetos PHP con las tablas MySQL
+
+## Instalación
+
+Usamos Composer para añadir Doctrine a nuestro proyecto:
+
+```
+composer require symfony/orm-pack
+composer require --dev symfony/maker-bundle
+```
+
+Una vez instalado nos crea carpetas:
+
+- Entity: clases que representan las tablas de nuestra base de datos
+- Repository: clases para consultar la base de datos
+- Migrations:
+
+En el archivo `.env` nos ha añadido la línea de configuración de la base de datos, debemos modificarla con nuestros datos de conexión. También ha creado los archivos yaml de configuración para Doctrine y Migrations.
+
+## Trabajar con Migrations
+
+En lugar de crear la base de datos desde un gestor de bases de datos, la podemos crear directamente desde terminal, de forma que sea Symfony quien se encargue no sólo de crear físicamente la base de datos, tablas y campos sino también crear las entidades en nuestro código. Además podremos tener controlada la evolución de la base de datos de un modo similar al modo de trabajo de un sistema de control de versiones con nuestro código.
+
+Crear base de datos:
+
+```
+$ php bin/console doctrine:database:create
+
+Created database `symfony` for connection named default
+```
+
+Con este comando lanzamos un asistente que nos preguntará los datos necesarios para crear una entidad:
+
+```
+$ php bin/console make:entity
+```
+
+Nos preguntará el nombre de la entidad y las propiedades que queremos que tenga, de cada propiedad nos preguntará nombre, tipo, tamaño y *nullable*.
+
+Creará:
+
+- Un archivo para la entidad en src\Entity, con los getters y setters de las propiedades. En las propiedades, dejará configurado por anotación el mapeo con el campo de la base de datos.
+- Un archivo para el repositorio en src\Repository
+
+En el mensaje que nos sale en terminal, lo último que nos pide es que, si está todo correcto, ejecutemos la migración:
+
+```
+Next: When you're ready, create a migration with php bin/console make:migration
+```
+
+## Ejecutar migración
+
+```
+php bin/console make:migration
+```
+
+Nos crea un archivo `.php` en la carpeta `\migrations` con los comandos SQL necesarios para crear las tablas y campos en nuestra base de datos. También tiene un archivo con los comandos SQL necesarios para eliminar estos cambios, de forma que podamos gestionar los cambios y el estado de nuestra base de datos. Este archivo es una clase con el nombre timestamp del momento en el que se crearon.
+
+El comando anterior sólo crea este archivo, lo siguiente que tenemos que hacer si queremos reflejar estos cambios en la base de datos es lo que nos dice como respuesta al comando:
+
+```
+php bin/console doctrine:migrations:migrate
+```
+
+Y vemos físicamente en nuestra base de datos los cambios realizados.
+
+## Persistencia de datos
+
+Dentro de un controlador, creamos un objeto de la entidad sobre la que queramos persistir un nuevo registro, seteando sus propiedades.
+
+Doctrine tiene un servicio llamado Entity Manager que nos permite persistir entidades en base de datos. Este servicio debemos inyectarlo en el controlador vía la interface *EntityManagerInterface*:
+
+```
+public function createBook(Request $request, EntityManagerInterface $em)
+```
+
+Y tenemos que realizar dos operaciones:
+
+- Invocar su método persist() pasándole el objeto que queremos persistir. Este método, pese a su nombre, no persiste el dato en base de datos.
+- Invocar su método flush(), que sí persiste todos los objetos que hayamos enviado al Entity Manager
+
+
+
+# Referencias
+
+Late and Code: https://www.youtube.com/watch?v=cYCCCgrFSi4&list=PLC8ntN5__iMIAy9V6XO37Dx_bQ5V7zc-h
+
+Contenedor servidor MySQL
+
+docker run --name mysql8 -e MYSQL_ROOT_PASSWORD=toor -p 3306:3306 -v "$PWD/data":/var/lib/mysql -d mysql
