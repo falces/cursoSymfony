@@ -3,6 +3,7 @@
 namespace App\Controller\Api;
 
 use App\Entity\Book;
+use App\Form\Model\BookDto;
 use App\Form\Type\BookFormType;
 use App\Repository\BookRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -29,10 +30,12 @@ class BooksController extends AbstractFOSRestController
         EntityManagerInterface $em,
         Request $request)
     {
-        $book = new Book();
-        $form = $this->createForm(BookFormType::class, $book);
+        $bookDto = new BookDto();
+        $form = $this->createForm(BookFormType::class, $bookDto);
         $form->handleRequest($request);
         if ($form->isSubmitted() && $form->isValid()) {
+            $book = new Book();
+            $book->setTitle($bookDto->title);
             $em->persist($book);
             $em->flush();
             return $book;

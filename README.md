@@ -56,6 +56,7 @@ composer create-project symfony/skeleton nombre_de_proyecto
     - FOS Rest: bundle para crear API Rest, similar a API Platform
     - API Platform
 - Forms: gestión de los datos que nos llegan de un formulario (recepción, validación, mapeo con objeto, etc.). Declaración y procesado de formulario.
+- flysystem-bundle: gestión de archivos, nos permite subir archivos a nuestro host o a servicios CDN tipo S3 de AWS.
 
 ```
 # Anotaciones
@@ -88,6 +89,9 @@ composer require friendsofsymfony/rest-bundle
 # Forms
 composer require form # alias
 composer require symfony/form
+
+# FlySystem-Bundle
+composer require oneup/flysystem-bundle
 ```
 
 ### Serializer
@@ -658,6 +662,94 @@ App\Entity\Book:
 
 Con esto ya estamos indicando que el título no puede ser nulo, no puede estar en blanco y tiene que tener entre 5 y 250 caracteres, además de los textos correspondientes a los mensajes de descripción del error si no se cumplen las características esperadas.
 
+## DTOs
+
+Imaginemos que tenemos un campo en el que recibimos una imagen codificada en base 64. Esta imagen se almacenará físicamente en un servidor, pero en base de datos sólo queremos guardar el nombre de la imagen en el campo. Para gestionar el formulario tal y como sabemos hasta ahora, tendríamos que empezar por crear un campo en la entidad Book con el campo base64Image para que el formulario pudiera gestionarlo y validarlo, pero con esto estaríamos adaptando la entidad al formulario y no al revés. Dado que las entidades tienen que ser reflejo de la estructura de base de datos, para adaptar el formulario a la entidad vamos a usar un DTO, Data Transfer Object:
+
+```
+# src/Form/Model/BookDto.php
+
+namespace App\Form\Model;
+
+class BookDto
+{
+    public $title;
+    public $base64Image;
+}
+```
+
+Modificamos el formulario para que utilice este DTO en lugar de la case Book:
+
+```
+# src/Form/Type/BookFormType.php
+# ...
+public function configureOptions(OptionsResolver $resolver): void
+{
+    $resolver->setDefaults([
+    	'data_class' => BookDto::class,
+    ]);
+}
+# ...
+```
+
+La validación que hacíamos contra Book ahora la hacemos contra el DTO:
+
+```
+# config/validator/Book.yaml
+# App\Entity\Book:
+App\Form\Model\BookDto:
+# ...
+```
+
+Y renombraremos, por coherencia, el archivo a `BookDto.yaml`. Dado que el DTO no es un servicio, no lo vamos a inyectar en ninguna clase, lo excluimos de la gestión de servicios de Symfony:
+
+```
+# config/services.yaml
+# ...
+App\:
+        resource: '../src/'
+        exclude:
+            - '../src/DependencyInjection/'
+            - '../src/Entity/'
+            - '../src/Kernel.php'
+            - '../src/Tests/'
+            - '../src/Form/Model'
+# ...
+```
+
+Ahora vamos al controlador y en la acción del post, cambiamos el objeto Book que pasábamos y metemos el DTO y, después de la validación, creamos el objeto Book asignándole :
+
+```
+# src/Controller/Api/BooksController.php
+# ...
+public function postAction(
+        EntityManagerInterface $em,
+        Request $request)
+    {
+        $bookDto = new BookDto();
+        $form = $this->createForm(BookFormType::class, $bookDto);
+        $form->handleRequest($request);
+        if ($form->isSubmitted() && $form->isValid()) {
+            $book = new Book();
+            $book->setTitle($bookDto->title);
+            $em->persist($book);
+            $em->flush();
+            return $book;
+        }
+        return $form;
+    }
+# ...
+```
+
+En resumen:
+
+- Creamos un formulario y le pasamos un DTO vacío para asociar los campos
+- El formulario gestiona la petición y valida el valor de los campos que se han almacenado en el DTO
+- Si el formulario es válido, creamos un objeto de la entidad y le asociamos los valores del DTO
+- Persistimos el objeto en base de datos.
+
+## Gestión de archivos
+
 # Referencias
 
 Curso API con Symfony 5 de Gerardo Fernández:
@@ -670,3 +762,6 @@ Contenedor servidor MySQL
 docker run --name mysql8 -e MYSQL_ROOT_PASSWORD=toor -p 3306:3306 -v "$PWD/data":/var/lib/mysql -d mysql
 ```
 
+Otros enlaces de interés
+
+https://latteandcode.medium.com/symfony-subiendo-archivos-con-flysystem-a-s3-b8f307fafd9a
