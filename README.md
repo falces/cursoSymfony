@@ -55,6 +55,7 @@ composer create-project symfony/skeleton nombre_de_proyecto
 - API Rest:
     - FOS Rest: bundle para crear API Rest, similar a API Platform
     - API Platform
+- Forms: gestión de los datos que nos llegan de un formulario (recepción, validación, mapeo con objeto, etc.). Declaración y procesado de formulario.
 
 ```
 # Anotaciones
@@ -83,6 +84,10 @@ composer require symfony/serializer-pack
 
 # FOS Rest Bundle
 composer require friendsofsymfony/rest-bundle
+
+# Forms
+composer require form # alias
+composer require symfony/form
 ```
 
 ### Serializer
@@ -541,10 +546,127 @@ $book = $bookRepository->findBy(["id" => $id]);
 
 El resultado (`$book`) es un array de objetos, cada uno de ellos es una fila de resultado de la consulta.
 
+# Formularios
+
+## Instalación
+
+### Añadir dependencia
+
+```
+composer require symfony/form
+# Alias:
+composer require form
+```
+
+### Configuración
+
+Creamos la carpeta `/src/Form/Type` (se puede meter el formulario en `Form` pero Symfony recomienda este nivel). En esta carpeta creamos una clase por cada formulario. En esta clase dejaremos configurados los campos que vamos a tratar y la clase con la que está asociado:
+
+```
+# Form/Type/BookFormType.php
+
+namespace App\Form\Type;
+
+use App\Entity\Book;
+use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\TextType;
+use Symfony\Component\OptionsResolver\OptionsResolver;
+
+class BookFormType extends AbstractType
+{
+    public function buildForm( $builder, array $options): void
+    {
+        $builder->add('task', TextType::class);
+    }
+
+    public function configureOptions(OptionsResolver $resolver): void
+    {
+        $resolver->setDefaults([
+            'data_class' => Book::class,
+        ]);
+    }
+}
+```
+
+En nuestro controlador escribimos un método con su ruta para que sea este formulario el que gestione la petición:
+
+```
+/**
+* @Rest\Post(path="/books")
+* @Rest\View(serializerGroups={"book"}, serializerEnableMaxDepthChecks=true)
+*/
+public function postAction(
+    EntityManagerInterface $em,
+    Request $request)
+{
+    $book = new Book();
+    // Creamos el formulario con la clase que acabamos de crear:
+    $form = $this->createForm(BookFormType::class, $book);
+    // Indicamos que este formulario gestionará la petición:
+    $form->handleRequest($request);
+    if ($form->isSubmitted() && $form->isValid()) {
+        $em->persist($book);
+        $em->flush();
+        return $book;
+    }
+    return $form;
+}
+```
+
+La request deberá llevar el nombre del formulario que se ha creado en el cuerpo, que para el formulario Book deberá ser:
+
+```
+{
+    "book_form" : {
+        "title": "Poeta en Nueva York"
+    }
+}
+```
+
+Para evitar tener que enviar las peticiones con este formato, tenemos que añadir este método en nuestro formulario:
+
+```
+public function getName(): string
+{
+	return '';
+}
+
+// Si estamos trabajando con Twig, también tendremos que añadir:
+public function getBlockPrefix(): string
+{
+	return '';
+}
+```
+
+## Validación
+
+Tenemos instalado el componente *Validator*, vamos a usarlo para asegurar el valor correcto de los campos (formato, tamaño, etc.). Creamos un archivo .yaml para configurar nuestro formulario:
+
+```
+# config/validator/Book.yaml
+App\Entity\Book:
+  properties:
+    title:
+      - NotBlank: ~
+      - Length:
+          min: 5
+          max: 250
+          minMessage: 'The title must be at least {{ limit }} characters long'
+          maxMessage: 'The title cannot be longer than {{ limit }} characters'
+          allowEmptyString: false
+```
+
+Con esto ya estamos indicando que el título no puede ser nulo, no puede estar en blanco y tiene que tener entre 5 y 250 caracteres, además de los textos correspondientes a los mensajes de descripción del error si no se cumplen las características esperadas.
+
 # Referencias
 
-Late and Code: https://www.youtube.com/watch?v=cYCCCgrFSi4&list=PLC8ntN5__iMIAy9V6XO37Dx_bQ5V7zc-h
+Curso API con Symfony 5 de Gerardo Fernández:
+
+> Late and Code: https://www.youtube.com/watch?v=cYCCCgrFSi4&list=PLC8ntN5__iMIAy9V6XO37Dx_bQ5V7zc-h
 
 Contenedor servidor MySQL
 
+```
 docker run --name mysql8 -e MYSQL_ROOT_PASSWORD=toor -p 3306:3306 -v "$PWD/data":/var/lib/mysql -d mysql
+```
+
