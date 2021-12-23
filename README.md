@@ -91,7 +91,8 @@ composer require form # alias
 composer require symfony/form
 
 # FlySystem-Bundle
-composer require oneup/flysystem-bundle
+# ¿? composer require oneup/flysystem-bundle
+composer require league/flysystem-bundle
 ```
 
 ### Serializer
@@ -749,6 +750,123 @@ En resumen:
 - Persistimos el objeto en base de datos.
 
 ## Gestión de archivos
+
+Para gestionar archivos vamos a utilizar la librería FlySystem-Bundle (https://github.com/1up-lab/OneupFlysystemBundle), que instalamos con:
+
+```
+composer require oneup/flysystem-bundle
+```
+
+También ejecutará una receta Flex, dejando configurado el bundle en `config/packages/flysystem.yaml`. En este archivo vamos a cambiar la ubicación local de almacenamiento de archivos, ya que viene ubicada en la carpeta caché y queremos que los archivos sean accesibles directamente, por lo que los ubicaremos en public:
+
+```
+# config/packages/flysystem.yaml
+# directory: '%kernel.project_dir%/var/storage/default'
+directory: '%kernel.project_dir%/public/storage/default'
+```
+
+En nuestro controlador, en la acción de post, inyectamos FileSystemInterface:
+
+```
+FilesystemOperator $defaultStorage
+```
+
+La variable se llama `$defaultStorage`, que es la transformación a *camelCase* del nombre del servicio en `config/packages/flysystem.yaml`, `default.storage` (si no se configura así se obtiene un error de autowire) y gestionamos el nombre de archivo y lo almacenamos:
+
+```
+/**
+* @Rest\Post(path="/books")
+* @Rest\View(serializerGroups={"book"}, serializerEnableMaxDepthChecks=true)
+* @throws FilesystemException
+*/
+public function postAction(
+    EntityManagerInterface $em,
+    Request $request,
+    FilesystemOperator $defaultStorage)
+{
+    $bookDto = new BookDto();
+    $form = $this->createForm(BookFormType::class, $bookDto);
+    $form->handleRequest($request);
+    if ($form->isSubmitted() && $form->isValid()) {
+
+        $extension = explode('/', mime_content_type($bookDto->base64Image))[1];
+        $data = explode(',', $bookDto->base64Image);
+        $fileName = sprintf('%s.%s', uniqid('book_', true), $extension);
+        $defaultStorage->write($fileName, base64_decode($data[1]));
+
+        $book = new Book();
+        $book->setTitle($bookDto->title);
+        $book->setImage($fileName);
+
+        $em->persist($book);
+        $em->flush();
+
+        return $book;
+    }
+    return $form;
+}
+```
+
+Ahora almacenamos físicamente la imagen y almacenamos el nombre en el campo image. Ahora estamos devolviendo esto:
+
+```
+{
+    "id": 10,
+    "title": "La reina del sur",
+    "image": "book_61c4d40f9a0715.30518699.jpeg"
+}
+```
+
+Pero con *Serializer* para devolver en `image` la ruta completa que nos sirva para utilizar en, por ejemplo, una etiqueta <image> de HTML. Serializer nos permite engancharnos al proceso de serialización para realizar las modificaciones que necesitemos:
+
+Creamos la carpeta `/src/Serializer` y creamos dentro un archivo `BookNormalizer.php`, que se encarga básicamente de hacer la transformación de entidad a json. Este archivo implementa la interface ContextAwareNormalizerInterface por lo que tiene que implementar dos métodos:
+
+```
+# src/Serializer/BookNormalizer.php
+<?php
+
+namespace App\Serializer;
+
+use App\Entity\Book;
+use Symfony\Component\HttpFoundation\UrlHelper;
+use Symfony\Component\Serializer\Normalizer\ContextAwareNormalizerInterface;
+use Symfony\Component\Serializer\Normalizer\ObjectNormalizer;
+
+class BookNormalizer implements ContextAwareNormalizerInterface
+{
+    private $normalizer;
+    private $urlHelper;
+
+    public function __construct(
+        ObjectNormalizer $normalizer,
+        UrlHelper $urlHelper)
+    {
+        $this->normalizer = $normalizer;
+        $this->urlHelper = $urlHelper;
+    }
+
+    public function normalize(
+              $book,
+              $format = null,
+        array $context = [])
+    {
+        $data = $this->normalizer->normalize($book, $format, $context);
+		
+		// Gestionamos campos:
+        if(!empty($book->getImage())){
+            $data['image'] = $this->urlHelper->getAbsoluteUrl('/storage/default/' . $book->getImage());
+        }
+
+        return $data;
+    }
+
+	// Indicamos qué entidad gestionará este normalizador:
+    public function supportsNormalization($data, string $format = null, array $context = []): bool
+    {
+        return $data instanceof Book;
+    }
+}
+```
 
 # Referencias
 

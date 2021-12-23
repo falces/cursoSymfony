@@ -5,4 +5,4 @@ App\Entity\Book: # Namespace de la entidad
     title:
       groups: [ 'book' ]
     image:
-      groups: [ 'bookDetail' ]
+      groups: [ 'book' ]
