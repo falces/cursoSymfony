@@ -1,0 +1,8 @@
+App\Entity\Book: # Namespace de la entidad
+  attributes:
+    id:
+      groups: [ 'book' ]
+    title:
+      groups: [ 'book' ]
+    image:
+      groups: [ 'bookDetail' ]

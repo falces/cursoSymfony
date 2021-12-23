@@ -46,11 +46,15 @@ Para un microservicio, aplicación de consola o API podemos hacer una instalaci�
 composer create-project symfony/skeleton nombre_de_proyecto
 ```
 
-### Dependencias
+## Otras dependencias de interés
 
 - Anotaciones: imprescindible para trabajar con anotaciones (por ejemplo para las rutas) en Symfony
 - Monolog: es un potente servicio para log. Se puede instalar mediante Flex (receta logger)
 - Doctrine: ORM
+- Serializer: nos ayuda a, por ejemplo, convertir resultados de consultas en arrays.
+- API Rest:
+    - FOS Rest: bundle para crear API Rest, similar a API Platform
+    - API Platform
 
 ```
 # Anotaciones
@@ -62,7 +66,143 @@ composer require logger # Receta Flex
 # Doctrine
 composer require symfony/orm-pack # Receta Flex
 composer require --dev symfony/maker-bundle
+
+# Serializer
+composer require symfony/serializer-pack
+	
+	# Dependencias:
+    composer require symfony/validator twig doctrine/annotations
+        # Validator
+        composer require symfony/validator
+
+        # Doctrine/annotations
+        composer require doctrine/annotations
+
+        # Twig
+        # composer require twig
+
+# FOS Rest Bundle
+composer require friendsofsymfony/rest-bundle
 ```
+
+### Serializer
+
+Configuramos Serializer: por un lado lo activamos y por otro configuramos el mapeo, esto es, la forma que tenemos de decirle a Serializer cómo queremos mapear las propieades al formato que nosotros queremos. Por ejemplo: "la propiedad title se va a llamar título" y más opciones.
+
+```
+# config/packages/framework.yaml
+framework:
+	# ...
+	serializer:
+        enabled: true
+        mapping:
+            paths: ['%kernel.project_dir%/config/serializer/']
+```
+
+Estamos diciendo a *Serializer* que en la carpeta `config/serializer` va a encontrar la configuración de mapeos. Dentro de esta carpeta podemos crear carpetas con las diferentes configuraciones y así mantener organizado el código:
+
+```
+App\Entity\Book: # Namespace de la entidad
+  attributes:
+    id:
+      groups: [ 'book' ]
+    title:
+      groups: [ 'books' ]
+    image:
+      groups: [ 'books', 'bookDetail' ]
+```
+
+Definimos grupos de serialización, que nos sirven para indicar qué propiedades se mostrarán en función del grupo especificado
+
+### FOS Rest Bundle
+
+```
+# config/packages/fos_rest.yaml
+fos_rest:
+  # Transformar parámetros post y get en entidades directamente
+  param_fetcher_listener: true
+  view:
+    # Cuando devolvamos null se envia con http code 200
+    empty_content: 200
+    # Devolver entidades desde nuestro controlador que sea este listener el que se encargue
+    # de serializarlos y generar un objeto response para devolver a la aplicación que consume el API
+    view_response_listener: true
+    # Cuando falle la aplicación devolvermos un código http 400
+    failed_validation: HTTP_BAD_REQUEST
+    formats:
+      # Sólo trabajamos con json, deshabilitamos xml
+      json: true
+      xml: false
+  body_listener:
+    # Podremos enviar JSONs y que automáticamente los descodifique
+    decoders:
+      json: fos_rest.decoder.json
+  format_listener:
+    rules:
+      # Configuramos FOS Rest Bundle para las llamadas dentro de /api
+      - { path: '/api', priorities: ['json'], fallback_format: json, prefer_extension: false }
+      # FOS Rest Bundle no gestionará nada fuera de /api
+      - { path: '^/', stop: true, fallback_format:  html }
+  exception:
+    # Serializar las excepciones
+    enabled: true
+  serializer:
+    # Serializar null, devolverá la propiedad igualada a null en lugar de no devolver las propiedades null
+    serialize_null: true
+```
+
+Para usar FOS Rest Bundle necesitaremos el componente Validator, que nos permite validar objetos en función de unas reglas que nosotros definamos.
+
+```
+# composer require symfony/validator
+# Requiere
+# composer require doctrine/annotations
+# Requiere
+# composer require twig
+composer require symfony/validator twig doctrine/annotations
+```
+
+En el controlador (en `/src/Controller/Api` ya que es la carpeta que configuramos en `config/routes/api.yaml`), hacemos heredar la clase de AbstractFOSRestController e importamos FOS\RestBundle\Controller\Annotations:
+
+```
+# src/Controller/Api/BooksController.php
+
+namespace App\Controller\Api;
+
+use FOS\RestBundle\Controller\AbstractFOSRestController;
+use FOS\RestBundle\Controller\Annotations as Rest;
+use Symfony\Component\HttpFoundation\Request;
+
+class BooksController extends AbstractFOSRestController
+{
+	/**
+     * @Rest\Get(path="/books")
+     * @Rest\View(serializerGroups={"book"}, serializerEnableMaxDepthChecks=true)
+     */
+    public function getActions(Request $request)
+    {
+        return $bookRepository->findAll();
+    }
+}
+
+```
+
+De esta forma, con una única línea de código en el método de la acción, extraemos la información necesaria y FOS Rest y Serializer nos devuelven la información como JSON:
+
+```
+[
+    {
+        "id": 1,
+        "title": "Kafka en la orilla"
+    },
+    {
+        "id": 2,
+        "title": "Fahrenheit 451"
+    }
+]
+```
+
+
 
 ## Estructura
 
@@ -144,6 +284,18 @@ Sobre el método destino de la ruta, añadimos un bloque de comentario con la in
 * @Route("/api/test", methods={"GET", "POST"}, name="api_test")
 */
 ```
+
+También podemos crear un archivo de configuración para indicar a Symfony las características de un grupo de rutas:
+
+```
+# config/routes/api.yaml
+api:
+  resource: ../../src/Controller/Api
+  type: annotation
+  prefix: /api
+```
+
+Aquí indicamos que las rutas de los controladores que haya dentro de la carpeta `src/Controller/Api` se configurarán mediante anotaciones y llevarán un prefijo `/api` en la ruta.
 
 ## YAML
 
@@ -368,7 +520,26 @@ Y tenemos que realizar dos operaciones:
 - Invocar su método persist() pasándole el objeto que queremos persistir. Este método, pese a su nombre, no persiste el dato en base de datos.
 - Invocar su método flush(), que sí persiste todos los objetos que hayamos enviado al Entity Manager
 
+## Recuperar datos
 
+Al crear la entidad con *Migrations*, Symfony creó una clase repositorio para la entidad. Esta clase hereda de la clase *ServiceEntityRepository*, lo que le transfiere una serie de métodos para recuperar información, que Symfony nos deja detallados en un comentario de la clase:
+
+```
+/**
+ * @method Book|null find($id, $lockMode = null, $lockVersion = null)
+ * @method Book|null findOneBy(array $criteria, array $orderBy = null)
+ * @method Book[]    findAll()
+ * @method Book[]    findBy(array $criteria, array $orderBy = null, $limit = null, $offset = null)
+ */
+```
+
+También nos deja comentados dos ejemplos de métodos particulares para que podamos tener una referencia a la hora de crear métodos específicos que necesitemos para esta entidad. Para una primera aproximación a la recuperación de datos con Doctrine, vamos a usar el método `findBy()`, al que le pasamos como parámetro un array campo => valor para hacer el filtro:
+
+```
+$book = $bookRepository->findBy(["id" => $id]);
+```
+
+El resultado (`$book`) es un array de objetos, cada uno de ellos es una fila de resultado de la consulta.
 
 # Referencias
 

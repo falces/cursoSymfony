@@ -1,9 +1,9 @@
 createBook:
-  path: /api/book
+  path: /book
   methods: 'POST'
   controller: App\Controller\BookController::createBook
 
 getBookById:
-  path: /api/book/{id}
+  path: /book/{id}
   methods: 'GET'
   controller: App\Controller\BookController::getBookById

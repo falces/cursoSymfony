@@ -1,0 +1,49 @@
+# Read the documentation: https://symfony.com/doc/master/bundles/FOSRestBundle/index.html
+#fos_rest:
+#    param_fetcher_listener:  true
+#    allowed_methods_listener:  true
+#    routing_loader: true
+#    view:
+#        view_response_listener:  true
+#    exception:
+#        codes:
+#            App\Exception\MyException: 403
+#        messages:
+#            App\Exception\MyException: Forbidden area.
+#    format_listener:
+#        rules:
+#            - { path: ^/api, prefer_extension: true, fallback_format: json, priorities: [ json, html ] }
+
+fos_rest:
+  # Transformar parámetros post y get en entidades directamente
+  param_fetcher_listener: true
+  view:
+    # Cuando devolvamos null se envía con http code 200
+    empty_content: 200
+    # Devolver entidades desde nuestro controlador que sea este listener el que se encargue
+    # de serializarlos y generar un objeto response para devolver a la aplicación que consume la API
+    view_response_listener: true
+    # Cuando falle la aplicación devolveremos un código http 400
+    failed_validation: HTTP_BAD_REQUEST
+    formats:
+      # Sólo trabajamos con json, deshabilitamos xml
+      json: true
+      xml: false
+  body_listener:
+    enabled: true
+    throw_exception_on_unsupported_content_type: true
+    # Podremos enviar JSONs y que automáticamente los descodifique
+    decoders:
+      json: fos_rest.decoder.json
+  format_listener:
+    rules:
+      # Configuramos FOS Rest Bundle para las llamadas dentro de /api
+      - { path: '/api', priorities: ['json'], fallback_format: json, prefer_extension: false }
+      # FOS Rest Bundle no gestionará nada fuera de /api
+      - { path: '^/', stop: true, fallback_format:  html }
+  exception:
+    # Serializar las excepciones
+    enabled: true
+  serializer:
+    # Serializar null, devolverá la propiedad igualada a null en lugar de no devolver las propiedades null
+    serialize_null: true

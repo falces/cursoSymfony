@@ -81,6 +81,7 @@ class BookController extends AbstractController
         }
 
         $book = $bookRepository->findBy(["id" => $id]);
+
         if ($book) {
             $book = reset($book);
             $responseData["result"]["message"] = "Libro encontrado";
@@ -100,7 +101,7 @@ class BookController extends AbstractController
     }
 
     /**
-     * @Route("/api/books", methods={"GET"}, name="getBooksList")
+     * @Route("/books", methods={"GET"}, name="getBooksList")
      */
     public function listBooks(BookRepository $bookRepository): JsonResponse
     {
