@@ -11,8 +11,8 @@ use Doctrine\ORM\EntityManagerInterface;
 use FOS\RestBundle\Controller\AbstractFOSRestController;
 use FOS\RestBundle\Controller\Annotations as Rest;
 use League\Flysystem\FilesystemException;
-use League\Flysystem\FilesystemOperator;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 class BooksController extends AbstractFOSRestController
 {
@@ -38,13 +38,18 @@ class BooksController extends AbstractFOSRestController
         $bookDto = new BookDto();
         $form = $this->createForm(BookFormType::class, $bookDto);
         $form->handleRequest($request);
-        if ($form->isSubmitted() && $form->isValid()) {
 
-            $fileName = $fileUploader->uploadBase64File($bookDto->base64Image);
+        if(!$form->isSubmitted()){
+            return new Response('', Response::HTTP_BAD_REQUEST);
+        }
 
+        if ($form->isValid()) {
             $book = new Book();
             $book->setTitle($bookDto->title);
-            $book->setImage($fileName);
+            if(!empty($bookDto->base64Image)){
+                $fileName = $fileUploader->uploadBase64File($bookDto->base64Image);
+                $book->setImage($fileName);
+            }
 
             $em->persist($book);
             $em->flush();

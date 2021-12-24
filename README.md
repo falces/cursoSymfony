@@ -57,7 +57,7 @@ composer create-project symfony/skeleton nombre_de_proyecto
     - API Platform
 - Forms: gestión de los datos que nos llegan de un formulario (recepción, validación, mapeo con objeto, etc.). Declaración y procesado de formulario.
 - flysystem-bundle: gestión de archivos, nos permite subir archivos a nuestro host o a servicios CDN tipo S3 de AWS.
-- PHPUnit: test unitarios
+- PHPUnit: test unitarios. Además de la propia librería PHPUnit, instalamos symfony/test-pack, que son más herramientas de testing para Symfony.
 
 ```
 # Anotaciones
@@ -95,8 +95,8 @@ composer require symfony/form
 # ¿? composer require oneup/flysystem-bundle
 composer require league/flysystem-bundle
 
-# PHP Unit
-composer require 
+# PHP Unit / Test-Pack
+composer require --dev phpunit/phpunit symfony/test-pack
 ```
 
 ### Serializer
@@ -502,10 +502,8 @@ public function postAction(
     Request $request,
     FileUploader $fileUploader)
 {
-
+	$fileName = $fileUploader->uploadBase64File($bookDto->base64Image);
 ```
-
-
 
 # Doctrine
 
@@ -932,6 +930,22 @@ class BookNormalizer implements ContextAwareNormalizerInterface
     }
 }
 ```
+
+# Testing
+
+https://symfony.com/doc/current/testing.html
+
+Instalamos PHPUnit y las herramientas Symfony para test:
+
+```
+composer require --dev phpunit/phpunit symfony/test-pack
+```
+
+Entre estas herramientas está `symfony/phpunit-bridge`:
+
+- Escribir los tests en la carpeta `tests/`.
+- Usaremos el comando `make:test` para crear nuevos tests
+- Ejecutaremos los tests con `php bin/phpunit`.
 
 # Referencias
 
