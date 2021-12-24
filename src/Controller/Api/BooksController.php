@@ -133,6 +133,13 @@ class BooksController extends AbstractFOSRestController
             }
             $em->persist($book);
             $em->flush();
+            /**
+             * Doctrine está devolviendo las categorías como un objeto, ya que al añadir y eliminar
+             * conserva los índices. Si tenemos las categorías índice (no Id) 0, 1 y 2 y eliminamos la 1,
+             * Doctrine nos devolverá las dos categorías con los índices 0 y 2 en lugar de 0 y 1. Para evitar
+             * esto, refrescamos:
+             */
+            $em->refresh($book);
             return $book;
         }
 
