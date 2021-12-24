@@ -507,6 +507,8 @@ public function postAction(
 
 # Doctrine
 
+https://symfony.com/doc/current/doctrine.html
+
 ## Descripción
 
 Symfony usa Doctrine como DBAL y ORM:
@@ -613,6 +615,72 @@ $book = $bookRepository->findBy(["id" => $id]);
 ```
 
 El resultado (`$book`) es un array de objetos, cada uno de ellos es una fila de resultado de la consulta.
+
+## Relacionar entidades
+
+Imaginemos que tenemos dos entidades, Book y Category. Queremos establecer una relación M:M (many to many) entre ellas: un libro puede tener muchas categorías y una categoría puede tener muchos libros:
+
+```
+bin/console make:entity Book
+
+Your entity already exists! So let's add some new fields!
+
+ New property name (press <return> to stop adding fields):
+ > categories
+
+ Field type (enter ? to see all types) [string]:
+ > relation
+
+ What class should this entity be related to?:
+ > Category
+
+What type of relationship is this?
+ ------------ --------------------------------------------------------------------
+  Type         Description
+ ------------ --------------------------------------------------------------------
+  ManyToOne    Each Book relates to (has) one Category.
+               Each Category can relate to (can have) many Book objects
+
+  OneToMany    Each Book can relate to (can have) many Category objects.
+               Each Category relates to (has) one Book
+
+  ManyToMany   Each Book can relate to (can have) many Category objects.
+               Each Category can also relate to (can also have) many Book objects
+
+  OneToOne     Each Book relates to (has) exactly one Category.
+               Each Category also relates to (has) exactly one Book.
+ ------------ --------------------------------------------------------------------
+
+ Relation type? [ManyToOne, OneToMany, ManyToMany, OneToOne]:
+ > ManyToMany
+
+ Do you want to add a new property to Category so that you can access/update Book objects from it - e.g. $category->getBooks()? (yes/no) [yes]:
+ > yes
+
+ A new property will also be added to the Category class so that you can access the related Book objects from it.
+
+ New field name inside Category [books]:
+ > books
+
+ updated: src/Entity/Book.php
+ updated: src/Entity/Category.php
+```
+
+Dado que la entidad Book existe, nos avisa de que vamos a añadir nuevos campos:
+
+- Nombre del campo: categories
+- Tipo de campo: relation
+- Clase: Category (la clase con la que queremos establecer la relación)
+- Tipo de relación: ManyToMany
+- ¿Queremos añadir una propiedad en Category para acceder a Books desde ella?: sí
+- Nombre de la propiedad: books
+
+```
+php bin/console make:migration
+php bin/console doctrine:migrations:migrate
+```
+
+
 
 # Formularios
 

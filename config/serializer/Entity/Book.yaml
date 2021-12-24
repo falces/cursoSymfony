@@ -6,3 +6,5 @@ App\Entity\Book: # Namespace de la entidad
       groups: [ 'book' ]
     image:
       groups: [ 'book' ]
+    categories:
+      groups: [ 'book' ]

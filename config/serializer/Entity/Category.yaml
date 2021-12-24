@@ -1,0 +1,6 @@
+App\Entity\Category: # Namespace de la entidad
+  attributes:
+    id:
+      groups: [ 'book' ]
+    name:
+      groups: [ 'book' ]

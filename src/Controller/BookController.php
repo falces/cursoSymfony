@@ -80,10 +80,9 @@ class BookController extends AbstractController
             return $response;
         }
 
-        $book = $bookRepository->findBy(["id" => $id]);
+        $book = $bookRepository->find($id);
 
         if ($book) {
-            $book = reset($book);
             $responseData["result"]["message"] = "Libro encontrado";
             $responseData["data"] = [
                 "Título" => $book->getTitle(),
