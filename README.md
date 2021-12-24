@@ -57,6 +57,7 @@ composer create-project symfony/skeleton nombre_de_proyecto
     - API Platform
 - Forms: gestión de los datos que nos llegan de un formulario (recepción, validación, mapeo con objeto, etc.). Declaración y procesado de formulario.
 - flysystem-bundle: gestión de archivos, nos permite subir archivos a nuestro host o a servicios CDN tipo S3 de AWS.
+- PHPUnit: test unitarios
 
 ```
 # Anotaciones
@@ -93,6 +94,9 @@ composer require symfony/form
 # FlySystem-Bundle
 # ¿? composer require oneup/flysystem-bundle
 composer require league/flysystem-bundle
+
+# PHP Unit
+composer require 
 ```
 
 ### Serializer
@@ -441,6 +445,67 @@ En el archivo `config/services.yaml` se define la configuración de los servicio
 - autoconfigure: Dejar que Symfony configure ciertos servicios (Eventos, Comandos, etc.)
 - resource: carpeta y subcarpetas que Symfony auditará para buscar servicios
 - exclude: carpeta y subcarpetas que Symfony excluirá para buscar servicios
+
+## Creando un servicio
+
+- Creaos la carpeta src/Service
+- Creamos dentro de esta carpeta las clases de los servicios, puede tener organización con subcarpetas
+
+Creamos un servicio para almacenar archivos en el servidor:
+
+```
+# src/Service/FileUploader.php
+
+<?php
+
+namespace App\Service;
+
+use League\Flysystem\FilesystemException;
+use League\Flysystem\FilesystemOperator;
+
+class FileUploader
+{
+    /**
+     * @var FilesystemOperator
+     */
+    private $fileSystem;
+
+    public function __construct(
+        FilesystemOperator $defaultStorage)
+    {
+        $this->fileSystem = $defaultStorage;
+    }
+
+    /**
+     * @throws FilesystemException
+     */
+    public function uploadBase64File(
+        string $base64File
+    ): string
+    {
+        $extension = explode('/', mime_content_type($base64File))[1];
+        $data = explode(',', $base64File);
+        $fileName = sprintf('%s.%s', uniqid('book_', true), $extension);
+
+        $this->fileSystem->write($fileName, base64_decode($data[1]));
+
+        return $fileName;
+    }
+}
+```
+
+En el controlador que lo necesite, podemos inyectarlo y utilizarlo:
+
+```
+public function postAction(
+    EntityManagerInterface $em,
+    Request $request,
+    FileUploader $fileUploader)
+{
+
+```
+
+
 
 # Doctrine
 
