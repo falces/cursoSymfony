@@ -34,9 +34,15 @@ class Book
      */
     private $categories;
 
+    /**
+     * @ORM\ManyToMany(targetEntity=Author::class, inversedBy="books")
+     */
+    private $author;
+
     public function __construct()
     {
         $this->categories = new ArrayCollection();
+        $this->author = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -88,6 +94,30 @@ class Book
     public function removeCategory(Category $category): self
     {
         $this->categories->removeElement($category);
+
+        return $this;
+    }
+
+    /**
+     * @return Collection|Author[]
+     */
+    public function getAuthor(): Collection
+    {
+        return $this->author;
+    }
+
+    public function addAuthor(Author $author): self
+    {
+        if (!$this->author->contains($author)) {
+            $this->author[] = $author;
+        }
+
+        return $this;
+    }
+
+    public function removeAuthor(Author $author): self
+    {
+        $this->author->removeElement($author);
 
         return $this;
     }

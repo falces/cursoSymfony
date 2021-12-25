@@ -680,8 +680,6 @@ php bin/console make:migration
 php bin/console doctrine:migrations:migrate
 ```
 
-
-
 # Formularios
 
 ## Instalación
@@ -1014,6 +1012,40 @@ Entre estas herramientas está `symfony/phpunit-bridge`:
 - Escribir los tests en la carpeta `tests/`.
 - Usaremos el comando `make:test` para crear nuevos tests
 - Ejecutaremos los tests con `php bin/phpunit`.
+
+# Procesos
+
+## Añadir una entidad relacionada
+
+1. Crear la nueva entidad. En nuestro ejemplo, creo la entidad Author con un campo name
+
+    ```
+    bin/console make:entity Author
+    ```
+
+2. Modifico la entidad relacionada y le añado la propiedad (campo) author, de tipo relation con la nueva clase Author, añadiendo también una propiedad en Author de forma que pueda hacer una búsqueda de libros desde autores.
+
+3. Modifico el DTO src/Form/Model/BookDto.php para añadir la propiedad author.
+
+4. Creo el DTO AuthorDTO (src/Form/Model/AuthorDto.php), incluyendo un método estático para generar un DTO de Author con sólo enviar la entidad Author:
+
+    ```
+    public static function createFromAuthor(Author $author): AuthorDto
+    {
+        $dto = new self();
+        $dto->id = $author->getId();
+        $dto->name = $author->getName();
+        return $dto;
+    }
+    ```
+
+5. Creo el formulario para Author (src/Form/Type/AuthorFormType.php)
+
+6. Modifico el formulario de Book (src/Form/Type/BookFormType.php) para gestionar la propiedad author.
+
+7. Modifico la configuración del serializador de la entidad Book (config/serializer/Entity/Book.yaml) para que devuelva el nuevo campo.
+
+8. Modifico el controlador (src/Controller/Api/BooksController.php) para gestionar la nueva propiedad.
 
 # Referencias
 

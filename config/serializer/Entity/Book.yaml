@@ -8,3 +8,5 @@ App\Entity\Book: # Namespace de la entidad
       groups: [ 'book' ]
     categories:
       groups: [ 'book' ]
+    author:
+      groups: [ 'book' ]

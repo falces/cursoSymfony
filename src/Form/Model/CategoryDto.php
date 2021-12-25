@@ -10,6 +10,10 @@ class CategoryDto
     public $id;
     public $name;
 
+    /**
+     * @param Category $category
+     * @return CategoryDto
+     */
     public static function createFromCategory(Category $category): CategoryDto
     {
         $dto = new self();

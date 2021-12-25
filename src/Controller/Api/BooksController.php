@@ -2,11 +2,14 @@
 
 namespace App\Controller\Api;
 
+use App\Entity\Author;
 use App\Entity\Book;
 use App\Entity\Category;
+use App\Form\Model\AuthorDto;
 use App\Form\Model\BookDto;
 use App\Form\Model\CategoryDto;
 use App\Form\Type\BookFormType;
+use App\Repository\AuthorRepository;
 use App\Repository\BookRepository;
 use App\Repository\CategoryRepository;
 use App\Service\FileUploader;
@@ -73,6 +76,7 @@ class BooksController extends AbstractFOSRestController
         EntityManagerInterface $em,
         BookRepository $bookRepository,
         CategoryRepository $categoryRepository,
+        AuthorRepository $authorRepository,
         Request $request,
         FileUploader $fileUploader
     )
@@ -89,6 +93,13 @@ class BooksController extends AbstractFOSRestController
             $categoryDto = CategoryDto::createFromCategory($category);
             $bookDto->categories[] = $categoryDto;
             $originalCategories->add($categoryDto);
+        }
+
+        $originalAuthors = new ArrayCollection();
+        foreach($book->getAuthor() as $author){
+            $authorDto = AuthorDto::createFromAuthor($author);
+            $bookDto->authors[] = $authorDto;
+            $originalAuthors->add($authorDto);
         }
 
         $form = $this->createForm(BookFormType::class, $bookDto);
@@ -126,6 +137,29 @@ class BooksController extends AbstractFOSRestController
                     $book->addCategory($category);
                 }
             }
+
+            /**
+             * Gestionar Autores
+             */
+            foreach($originalAuthors as $originalAuthorDto){
+                if(!in_array($originalAuthorDto, $bookDto->authors)){
+                    $author = $authorRepository->find($originalAuthorDto->id);
+                    $book->removeAuthor($author);
+                }
+            }
+
+            foreach($bookDto->authors as $newAuthorDto){
+                if(!$originalAuthors->contains($newAuthorDto)){
+                    $author = $authorRepository->find($newAuthorDto->id ?? 0);
+                    if(!$author){
+                        $author = new Author();
+                        $author->setName($newAuthorDto->name);
+                        $em->persist($author);
+                    }
+                    $book->addAuthor($author);
+                }
+            }
+
             $book->setTitle($bookDto->title);
             if ($bookDto->base64Image) {
                 $filename = $fileUploader->uploadBase64File($bookDto->base64Image);

@@ -3,7 +3,6 @@
 namespace App\Form\Type;
 
 use App\Form\Model\BookDto;
-use App\Form\Type\CategoryFormType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CollectionType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
@@ -22,8 +21,11 @@ class BookFormType extends AbstractType
                 # El usuario puede quitar categorías
                 'allow_delete' => true,
                 # Especificamos la clase a la que se refiere
-                'entry_type' => CategoryFormType::class
-            ])
+                'entry_type' => CategoryFormType::class])
+            ->add('authors', CollectionType::class, [
+                'allow_add' => true,
+                'allow_delete' => true,
+                'entry_type' => AuthorFormType::class])
         ;
     }
 
