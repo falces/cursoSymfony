@@ -8,12 +8,12 @@ use Doctrine\ORM\EntityManagerInterface;
 
 class BookManager
 {
-    private $em;
-    private $bookRepository;
+    private EntityManagerInterface $em;
+    private BookRepository $bookRepository;
 
     public function __construct(
         EntityManagerInterface $em,
-        BookRepository $bookRepository)
+        BookRepository         $bookRepository)
     {
         $this->em = $em;
         $this->bookRepository = $bookRepository;

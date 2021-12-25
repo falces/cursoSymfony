@@ -10,7 +10,7 @@ class FileUploader
     /**
      * @var FilesystemOperator
      */
-    private $fileSystem;
+    private FilesystemOperator $fileSystem;
 
     public function __construct(
         FilesystemOperator $defaultStorage)

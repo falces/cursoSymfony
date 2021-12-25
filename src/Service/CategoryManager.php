@@ -8,8 +8,8 @@ use Doctrine\ORM\EntityManagerInterface;
 
 class CategoryManager
 {
-    private $em;
-    private $categoryRepository;
+    private EntityManagerInterface $em;
+    private CategoryRepository $categoryRepository;
 
     public function __construct(
         EntityManagerInterface $em,
