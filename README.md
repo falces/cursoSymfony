@@ -58,6 +58,7 @@ composer create-project symfony/skeleton nombre_de_proyecto
 - Forms: gestión de los datos que nos llegan de un formulario (recepción, validación, mapeo con objeto, etc.). Declaración y procesado de formulario.
 - flysystem-bundle: gestión de archivos, nos permite subir archivos a nuestro host o a servicios CDN tipo S3 de AWS.
 - PHPUnit: test unitarios. Además de la propia librería PHPUnit, instalamos symfony/test-pack, que son más herramientas de testing para Symfony.
+- Security Bundle: paquete de utilidades para la gestión de seguridad en Symfony
 
 ```
 # Anotaciones
@@ -97,6 +98,9 @@ composer require league/flysystem-bundle
 
 # PHP Unit / Test-Pack
 composer require --dev phpunit/phpunit symfony/test-pack
+
+# Security Bundle
+composer require symfony/security-bundle
 ```
 
 ### Serializer
@@ -1012,6 +1016,100 @@ Entre estas herramientas está `symfony/phpunit-bridge`:
 - Escribir los tests en la carpeta `tests/`.
 - Usaremos el comando `make:test` para crear nuevos tests
 - Ejecutaremos los tests con `php bin/phpunit`.
+
+# Seguridad
+
+## Instalación de Security Bundle
+
+```
+composer require symfony/security-bundle
+```
+
+La receta Flex nos crea un archivo yaml con la configuración de seguridad en `config/packages/security.yaml` con tres categorías:
+
+- providers: encargados de buscar usuarios
+- firewalls: determinan la forma de autenticarse en determinadas partes de nuestra aplicación. Por ejemplo, determinan acceso a /admin, /api...
+- access_control: se encarga de determinar a qué partes de la aplicación puede un usuario autenticado -que ha superado firewall- puede acceder (roles de usuario).
+
+## Configuración
+
+A partir de esta instalación los endpoints que tengamos que usen formularios dejan de funcionar. Para esto podemos hacer dos cosas:
+
+### Deshabilitar la seguridad a nivel de formulario
+
+En la clase donde configuramos el formulario, podemos añadir la clave
+
+```
+'csrf_protection' => false,
+```
+
+En el método de configuración del formulario:
+
+```
+# src/Form/Type/BookFormType.php
+
+public function configureOptions(OptionsResolver $resolver): void
+{
+    $resolver->setDefaults([
+        'data_class' => BookDto::class,
+        'csrf_protection' => false,
+    ]);
+}
+```
+
+### Deshabilitar para todos los formularios
+
+```
+# config/packages/framework.yaml
+
+framework:
+	csrf_protection: true
+```
+
+## Implementación
+
+Symfony requiere tener una entidad User. no tiene por qué estar persistida en base de datos:
+
+```
+php bin/console make:user
+ The name of the security user class (e.g. User) [User]:
+ > User
+
+ Do you want to store user data in the database (via Doctrine)? (yes/no) [yes]:
+ > yes
+
+ Enter a property name that will be the unique "display" name for the user (e.g. email, username, uuid) [email]:
+ > email
+
+ Will this app need to hash/check user passwords? Choose No if passwords are not needed or will be checked/hashed by some other system (e.g. a single sign-on server).
+
+ Does this app need to hash/check user passwords? (yes/no) [yes]:
+ > yes
+
+ created: src/Entity/User.php
+ created: src/Repository/UserRepository.php
+ updated: src/Entity/User.php
+ updated: config/packages/security.yaml
+ 
+ bin/console make:migration
+ 
+ bin/console doctrine:migrations:migrate
+```
+
+Nos crea las clases correspondientes y nos configura un provider en el yaml de configuración de seguridad:
+
+```
+# config/packages/security.yaml
+
+providers:
+    # used to reload user from session & other features (e.g. switch_user)
+    app_user_provider:
+    	entity:
+    		class: App\Entity\User
+    	property: email
+```
+
+
 
 # Procesos
 

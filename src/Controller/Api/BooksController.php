@@ -2,7 +2,6 @@
 
 namespace App\Controller\Api;
 
-use App\Entity\Book;
 use App\Service\BookFormProcessor;
 use App\Service\BookManager;
 use FOS\RestBundle\Controller\AbstractFOSRestController;
@@ -48,7 +47,8 @@ class BooksController extends AbstractFOSRestController
         BookManager       $bookManager,
         BookFormProcessor $bookFormProcessor,
         Request           $request
-    ) {
+    ): View
+    {
         $book = $bookManager->create();
         [$book, $error] = ($bookFormProcessor)($book, $request);
 
