@@ -15,6 +15,7 @@ use Symfony\Component\Security\Http\Authenticator\Passport\SelfValidatingPasspor
 
 class ApiKeyAuthenticator extends AbstractAuthenticator
 {
+    const TOKEN = 'MIAPP';
     /**
      * Called on every request to decide if this authenticator should be
      * used for the request. Returning `false` will cause this authenticator
@@ -25,7 +26,7 @@ class ApiKeyAuthenticator extends AbstractAuthenticator
         return $request->headers->has('X-AUTH-TOKEN');
     }
 
-    public function authenticate(Request $request): Passport
+    public function authenticate(Request $request): ?Passport
     {
         $apiToken = $request->headers->get('X-AUTH-TOKEN');
         if (null === $apiToken) {
@@ -33,8 +34,15 @@ class ApiKeyAuthenticator extends AbstractAuthenticator
             // Code 401 "Unauthorized"
             throw new CustomUserMessageAuthenticationException('No API token provided');
         }
+//        if($apiToken !== self::TOKEN){
+//            return null;
+//        }
 
-        return new SelfValidatingPassport(new UserBadge($apiToken));
+        $userBadge = new UserBadge($apiToken);
+
+        $selfBalidatingPassport = new SelfValidatingPassport($userBadge);
+
+        return $selfBalidatingPassport;
     }
 
     public function onAuthenticationSuccess(Request $request, TokenInterface $token, string $firewallName): ?Response
