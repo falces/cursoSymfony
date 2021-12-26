@@ -2,6 +2,7 @@
 
 namespace App\Controller\Api;
 
+use App\Entity\Book;
 use App\Service\BookFormProcessor;
 use App\Service\BookManager;
 use FOS\RestBundle\Controller\AbstractFOSRestController;
@@ -21,6 +22,21 @@ class BooksController extends AbstractFOSRestController
         BookManager $bookManager
     ): array {
         return $bookManager->getRepository()->findAll();
+    }
+
+    /**
+     * @Rest\Get(path="/books/{id}")
+     * @Rest\View(serializerGroups={"book"}, serializerEnableMaxDepthChecks=true)
+     */
+    public function getBookDetailActions(
+        int         $id,
+        BookManager $bookManager
+    ) {
+        $book = $bookManager->find($id);
+        if (!$book) {
+            return View::create('Libro no encontrado', Response::HTTP_BAD_REQUEST);
+        }
+        return $book;
     }
 
     /**
