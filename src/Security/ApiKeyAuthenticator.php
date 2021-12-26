@@ -51,3 +51,26 @@ class ApiKeyAuthenticator extends AbstractAuthenticator
         $userBadge = new UserBadge($apiToken);
 
         $selfBalidatingPassport = new SelfValidatingPassport($userBadge);
+
+        return $selfBalidatingPassport;
+    }
+
+    public function onAuthenticationSuccess(Request $request, TokenInterface $token, string $firewallName): ?Response
+    {
+        // on success, let the request continue
+        return null;
+    }
+
+    public function onAuthenticationFailure(Request $request, AuthenticationException $exception): ?Response
+    {
+        $data = [
+            // you may want to customize or obfuscate the message first
+            'message' => strtr($exception->getMessageKey(), $exception->getMessageData())
+
+            // or to translate this message
+            // $this->translator->trans($exception->getMessageKey(), $exception->getMessageData())
+        ];
+
+        return new JsonResponse($data, Response::HTTP_UNAUTHORIZED);
+    }
+}
