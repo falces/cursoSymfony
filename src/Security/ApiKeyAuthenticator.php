@@ -15,7 +15,17 @@ use Symfony\Component\Security\Http\Authenticator\Passport\SelfValidatingPasspor
 
 class ApiKeyAuthenticator extends AbstractAuthenticator
 {
-    const TOKEN = 'MIAPP';
+
+    private string $appApiToken;
+
+    /**
+     * @param string $appApiToken
+     */
+    public function __construct(string $appApiToken)
+    {
+        $this->appApiToken = $appApiToken;
+    }
+
     /**
      * Called on every request to decide if this authenticator should be
      * used for the request. Returning `false` will cause this authenticator
