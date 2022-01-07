@@ -265,6 +265,8 @@ Desde la versión 4 de Symfony es posible ejecutar nuestra aplicación sin la ne
 
 ```
 symfony server:start
+
+php -S 127.0.0.1:8000 -t public
 ```
 
 Esto nos levanta un servidor local y nos indicará la URL, http://127.0.0.1, el puerto puede cambiar. Si accedemos veremos la página por defecto de Symfony.
